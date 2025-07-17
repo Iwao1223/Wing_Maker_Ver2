@@ -33,8 +33,9 @@ class WingConfig:
     rib_cap_position: float
     spar_cap_thickness: float
     spar_cap_degree: float
-    rear_spar_cap_thickness: float
-    rear_spar_cap_degree: float
+    squid_cap_thickness: float
+    squid_cap_length: float
+    squid_cap_text_wide: float
     joint_thickness: float
     squid_length: float
     te_length: float

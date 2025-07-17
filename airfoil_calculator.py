@@ -37,7 +37,7 @@ class AirfoilCalculator:
         airfoil_df_list = airfoil.merge()
         airfoil_fx = AirfoilInterpolate(airfoil_df_list, chord_list)
         self.airfoil_fx_list = airfoil_fx.batch_interpolate()
-        plank_fx_list, rib_cap_fx_list, rib_cap_plank_fx_list, joint_fx_list = [], [], [], []
+        plank_fx_list, rib_cap_fx_list, rib_cap_plank_fx_list, self.joint_fx_list = [], [], [], []
         for i in range(len(chord_list)):
             plank_fx = Geometry.offset_airfoil(self.airfoil_fx_list[0][i], self.airfoil_fx_list[1][i],
                                                self.config.plank_thickness)
@@ -50,10 +50,10 @@ class AirfoilCalculator:
             rib_cap_plank_fx_list.append(rib_cap_plank_fx)
             joint_fx = Geometry.offset_airfoil(self.airfoil_fx_list[0][i], self.airfoil_fx_list[1][i], (
                     self.config.rib_cap_thickness + self.config.plank_thickness + self.config.joint_thickness))
-            joint_fx_list.append(joint_fx)
-            offset_fx_list_top = [plank_fx_list[i][0], rib_cap_plank_fx_list[i][0], joint_fx_list[i][0],
+            self.joint_fx_list.append(joint_fx)
+            offset_fx_list_top = [plank_fx_list[i][0], rib_cap_plank_fx_list[i][0], self.joint_fx_list[i][0],
                                   rib_cap_fx_list[i][0]]
-            offset_fx_list_bottom = [plank_fx_list[i][1], rib_cap_plank_fx_list[i][1], joint_fx_list[i][1],
+            offset_fx_list_bottom = [plank_fx_list[i][1], rib_cap_plank_fx_list[i][1], self.joint_fx_list[i][1],
                                      rib_cap_fx_list[i][1]]
             x_section_list_top = np.array(
                 [plank_fx[0].x.min(), rib_cap_position[i], plank_position_top[i] - self.config.joint_width,
@@ -428,6 +428,46 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
             self.spar_cap_tuple_list.append(spar_cap_tuple)
         return self.spar_cap_tuple_list
 
+    def generate_squid_cap(self):
+        squid_cap_tuple_list = []
+        if self.config.squid is None:
+            print('警告: squidの設定がありません。')
+            return squid_cap_tuple_list
+        geso_length = self.config.squid_length / 3
+        for i in range(len(self.chord_list)):
+            te_carbon_fx = Geometry.offset_airfoil(self.airfoil_fx_list[0][i], self.airfoil_fx_list[1][i],
+                                                   self.config.te_carbon_thickness)
+            squid_cap_x_geso = np.linspace(self.chord_list[i] - self.config.squid_length - self.config.squid_cap_length, self.chord_list[i] - self.config.te_length, 100)
+            squid_cap_x_carbon = np.linspace(self.chord_list[i] - self.config.te_length, self.chord_list[i] - self.config.te_carbon_thickness, 100)
+            squid_cap_y_geso_top = self.airfoil_fx_list[0][i](squid_cap_x_geso)
+            squid_cap_y_carbon_top = te_carbon_fx[0](squid_cap_x_carbon)
+            squid_cap_y_geso_bottom = self.airfoil_fx_list[1][i](squid_cap_x_geso)
+            squid_cap_y_carbon_bottom = te_carbon_fx[1](squid_cap_x_carbon)
+            squid_cap_x = np.concatenate((squid_cap_x_geso, squid_cap_x_carbon,
+                                          np.flip(squid_cap_x_carbon), np.flip(squid_cap_x_geso)))
+            squid_cap_y = np.concatenate((squid_cap_y_geso_top, squid_cap_y_carbon_top,
+                                          np.flip(squid_cap_y_carbon_bottom), np.flip(squid_cap_y_geso_bottom)))
+            squid_cap_tuple = Geometry.to_tuple_list(squid_cap_x, squid_cap_y)
+            squid_cap_tuple_list.append(squid_cap_tuple)
+        return squid_cap_tuple_list
+
+    def generate_squid_cap_lightning(self):
+        squid_cap_lightning_tuple_list = []
+        if self.config.squid is None:
+            print('警告: squidの設定がありません。')
+            return squid_cap_lightning_tuple_list
+        geso_length = self.config.squid_length / 3
+        for i in range(len(self.chord_list)):
+            squid_cap_lightning_intersection = Geometry.find_intersection(self.offset_fx_list_top[i][0],self.offset_fx_list_bottom[i][0], 50)
+            squid_cap_lightning_x = np.linspace(self.chord_list[i] - self.config.squid_length - self.config.squid_cap_length + self.config.squid_cap_text_wide, squid_cap_lightning_intersection, 100)
+            squid_cap_lightning_y_top = self.offset_fx_list_top[i][0](squid_cap_lightning_x)
+            squid_cap_lightning_y_bottom = self.offset_fx_list_bottom[i][0](squid_cap_lightning_x)
+            squid_cap_lightning_x = np.concatenate((squid_cap_lightning_x, np.flip(squid_cap_lightning_x)))
+            squid_cap_lightning_y = np.concatenate((squid_cap_lightning_y_top, np.flip(squid_cap_lightning_y_bottom)))
+            squid_cap_lightning_tuple = Geometry.to_tuple_list(squid_cap_lightning_x, squid_cap_lightning_y)
+            squid_cap_lightning_tuple_list.append(squid_cap_lightning_tuple)
+        return squid_cap_lightning_tuple_list
+
     def generate_joint(self):
         joint_top_tuple_list = []
         joint_bottom_tuple_list = []
@@ -467,6 +507,8 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
                 joint_bottom_tuple = Geometry.to_tuple_list(joint_x_bottom, joint_y_bottom)
                 joint_top_tuple_list.append(joint_top_tuple)
                 joint_bottom_tuple_list.append(joint_bottom_tuple)
+                joint_height_top = self.offset_fx_list_top[i][1](plank_position_top) - self.joint_fx_list[i][0](plank_position_top)
+                joint_height_bottom = self.joint_fx_list[i][1](plank_position_bottom) - self.offset_fx_list_bottom[i][1](plank_position_bottom)
         else:
             print('警告: リブキャップリーディング、リブキャップトレーリング、プランクのいずれかがFalseの場合、ジョイントは生成されません。')
         return joint_top_tuple_list, joint_bottom_tuple_list
@@ -497,7 +539,7 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
             squid_tuple = Geometry.to_tuple_list(squid_x, squid_y)
             squid_tuple_list.append(squid_tuple)
             squid_tuple_list.append([])
-
+            geso_height =  self.offset_fx_list_top[i][-1](self.chord_list[i] - self.config.squid_length + geso_length) - self.offset_fx_list_bottom[i][-1](self.chord_list[i] - self.config.squid_length + geso_length)
         return squid_tuple_list
 
     def get_rib_cap_length(self):
@@ -531,4 +573,5 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
                                    rib_cap_bottom_leading_length, rib_cap_bottom_trailing_length]
             rib_cap_length.append(rib_cap_length_list)
         return rib_cap_length
+
 

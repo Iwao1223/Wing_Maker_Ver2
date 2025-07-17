@@ -40,12 +40,13 @@ class Geometry:
         return X, Y
 
     @staticmethod
-    def find_intersection(fx, bottom_fx):
-        x_min, x_max = fx.x.min(), fx.x.max()
-
+    def find_intersection(fx, bottom_fx, x_min=None, x_max=None):
+        if x_min is None:
+            x_min = fx.x.min()
+        if x_max is None:
+            x_max = fx.x.max()
         def diff(x):
-            return fx(x) - bottom_fx(x)
-
+            return abs(fx(x)) - abs(bottom_fx(x))
         intersection_x = brentq(diff, x_min, x_max)
         return intersection_x
 

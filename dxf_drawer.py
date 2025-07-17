@@ -26,5 +26,10 @@ class DXFDrawer:
         ratio = diameter_list[1] / diameter_list[0]
         self.msp.add_ellipse(center, major_axis=major_axis, ratio=ratio)
 
+    def draw_text(self,text_list):
+        for i in text_list:
+            self.msp.add_lwpolyline(i)
+
+
     def save(self, filename):
         self.doc.saveas(filename)

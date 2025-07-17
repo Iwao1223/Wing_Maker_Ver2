@@ -53,6 +53,3 @@ class AirfoilInterpolate:
         return [top_fx_list, bottom_fx_list]
 
 
-if __name__ == '__main__':
-    x = AirfoilInterpolate(800,100)
-    x.airfoil_interpolate()

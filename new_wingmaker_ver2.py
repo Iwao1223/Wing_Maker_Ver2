@@ -26,10 +26,16 @@ class NewWingMaker:
                                                                spar_diameter_list,
                                                                rear_spar_diameter_list)
         spar_cap_tuple_list = self.calculator.generate_spar_cap(spar_diameter_list)
+        squid_cap_tuple_list = self.calculator.generate_squid_cap()
+        squid_cap_lightning_tuple_list = self.calculator.generate_squid_cap_lightning()
         joint_top_tuple_list, joint_bottom_tuple_list = self.calculator.generate_joint()
         squid_tuple_list = self.calculator.generate_squid()
         rib_cap_length = self.calculator.get_rib_cap_length()
-        text = self.text_annotator.draw_text()
+        text = self.text_annotator.draw_text_horizon(False,0,1,[0,0],5,5)
+        print(text)
+        self.drawer.draw_text(text)
+
+        text = self.text_annotator.draw_text_horizon()
         self.drawer.draw_polyline(airfoil[0])
 
         self.drawer.draw_polyline(spar_cap_tuple_list[0])
@@ -37,6 +43,8 @@ class NewWingMaker:
             self.drawer.draw_circle(spar_position_tuple_list[0], spar_diameter_list[0])
         elif self.config.circle_or_ellipse == 'ellipse':
             self.drawer.draw_ellipse(spar_position_tuple_list[0], spar_diameter_list[0], ellipse_degree_list[0])
+        self.drawer.draw_polyline(squid_cap_tuple_list[0])
+        self.drawer.draw_polyline(squid_cap_lightning_tuple_list[0])
         self.drawer.draw_circle(rear_spar_position_tuple_list[0], rear_spar_diameter_list[0])
         self.drawer.draw_polyline(joint_top_tuple_list[0])
         self.drawer.draw_polyline(joint_bottom_tuple_list[0])
@@ -74,8 +82,9 @@ if __name__ == '__main__':
         rib_cap_position=3,
         spar_cap_thickness=10,
         spar_cap_degree=70,
-        rear_spar_cap_thickness=1,
-        rear_spar_cap_degree=70,
+        squid_cap_thickness=1,
+        squid_cap_length=20,
+        squid_cap_text_wide = 10,
         joint_thickness=4,
         squid_length=50,
         te_length=30,
