@@ -530,6 +530,5 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
             rib_cap_length_list = [rib_cap_top_leading_length, rib_cap_top_trailing_length,
                                    rib_cap_bottom_leading_length, rib_cap_bottom_trailing_length]
             rib_cap_length.append(rib_cap_length_list)
-            print(f'{i + 1}番目のリブキャップの長さ: {rib_cap_length_list}')
         return rib_cap_length
 

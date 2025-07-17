@@ -2,6 +2,7 @@
 from dataclass import WingConfig
 from wing_interpolate import WingInterpolate
 from airfoil_calculator import AirfoilCalculator
+from text_annotator import TextAnnotator
 from dxf_drawer import DXFDrawer
 import numpy as np
 
@@ -12,6 +13,7 @@ class NewWingMaker:
         self.config = config
         self.wing_interpolator = WingInterpolate(config)
         self.calculator = AirfoilCalculator(config)
+        self.text_annotator = TextAnnotator(config)
         self.drawer = DXFDrawer()
 
     def make_rib(self):
@@ -27,6 +29,7 @@ class NewWingMaker:
         joint_top_tuple_list, joint_bottom_tuple_list = self.calculator.generate_joint()
         squid_tuple_list = self.calculator.generate_squid()
         rib_cap_length = self.calculator.get_rib_cap_length()
+        text = self.text_annotator.draw_text()
         self.drawer.draw_polyline(airfoil[0])
 
         self.drawer.draw_polyline(spar_cap_tuple_list[0])
