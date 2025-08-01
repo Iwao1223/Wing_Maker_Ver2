@@ -36,8 +36,8 @@ class NewWingMakerWithNesting:
         squid_tuple_list = self.calculator.generate_squid()
         rib_cap_length = self.calculator.get_rib_cap_length()
 
-        text = self.text_annotator.draw_text_horizon(False, 0, 1, [0, 0], 5, 5)
-        print(text)
+        text = self.text_annotator.draw_text_horizon(False, 0, 1, [44, 0], 5, 5)
+        #print(text)
         self.drawer.draw_text(text)
 
         text = self.text_annotator.draw_text_horizon()
@@ -186,14 +186,14 @@ if __name__ == '__main__':
     wing_maker = NewWingMakerWithNesting(config)
 
     # 通常のリブ生成
-    # wing_maker.make_rib()
+    wing_maker.make_rib()
 
     # ネスティング機能付きリブ生成
-    result = wing_maker.make_nested_ribs(
-        bin_width=910.0,  # 材料幅1200mm
-        simplify_tolerance=2,  # 2mm以下の変化を無視
-        output_filename="optimized_wing_layout.dxf",
-        safety_margin=1.0,
-        generate_video=False,
-        video_filename="wing_rib_optimization.mp4"
-    )
+    # result = wing_maker.make_nested_ribs(
+    #     bin_width=910.0,  # 材料幅
+    #     simplify_tolerance=2,  # 2mm以下の変化を無視
+    #     output_filename="optimized_wing_layout.dxf",
+    #     safety_margin=1.0,
+    #     generate_video=False,
+    #     video_filename="wing_rib_optimization.mp4"
+    # )
