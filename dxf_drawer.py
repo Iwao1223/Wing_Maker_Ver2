@@ -1,6 +1,8 @@
 # dxf_drawer.py
 import ezdxf
 import numpy as np
+from shapely.geometry import Polygon
+from shapely.affinity import translate, rotate
 
 class DXFDrawer:
 
@@ -33,3 +35,13 @@ class DXFDrawer:
 
     def save(self, filename):
         self.doc.saveas(filename)
+
+    def draw_nested_rib(self, points, position=(0, 0), angle=0):
+        poly = Polygon(points)
+        if angle != 0:
+            poly = rotate(poly, angle, origin='centroid')
+        if position != (0, 0):
+            poly = translate(poly, xoff=position[0], yoff=position[1])
+        coords = list(poly.exterior.coords)[:-1]
+        # DXFへの描画処理（coordsを使う）
+        self.msp.add_lwpolyline(coords, format="xy", close=True)

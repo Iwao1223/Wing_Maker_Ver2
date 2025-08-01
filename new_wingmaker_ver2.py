@@ -1,14 +1,17 @@
+"""
+ネスティング機能を追加したWing_Maker_Ver2
+"""
 # new_wingmaker.py
 from dataclass import WingConfig
 from wing_interpolate import WingInterpolate
 from airfoil_calculator import AirfoilCalculator
 from text_annotator import TextAnnotator
 from dxf_drawer import DXFDrawer
+from nesting_integrator import integrate_nesting_to_wingmaker
 import numpy as np
 
 
-
-class NewWingMaker:
+class NewWingMakerWithNesting:
     def __init__(self, config: WingConfig):
         self.config = config
         self.wing_interpolator = WingInterpolate(config)
@@ -17,21 +20,23 @@ class NewWingMaker:
         self.drawer = DXFDrawer()
 
     def make_rib(self):
+        """既存のリブ生成機能"""
         chord_list, mix_list, \
             spar_position_list, rear_spar_position_list, \
             spar_diameter_list, rear_spar_diameter_list, ellipse_degree_list = self.wing_interpolator.interpolate()
         airfoil = self.calculator.generate_airfoil(chord_list, mix_list)
         spar_position_tuple_list, rear_spar_position_tuple_list = self.calculator.get_spar_positions(spar_position_list,
-                                                               rear_spar_position_list,
-                                                               spar_diameter_list,
-                                                               rear_spar_diameter_list)
+                                                                                                     rear_spar_position_list,
+                                                                                                     spar_diameter_list,
+                                                                                                     rear_spar_diameter_list)
         spar_cap_tuple_list = self.calculator.generate_spar_cap(spar_diameter_list)
         squid_cap_tuple_list = self.calculator.generate_squid_cap()
         squid_cap_lightning_tuple_list = self.calculator.generate_squid_cap_lightning()
         joint_top_tuple_list, joint_bottom_tuple_list = self.calculator.generate_joint()
         squid_tuple_list = self.calculator.generate_squid()
         rib_cap_length = self.calculator.get_rib_cap_length()
-        text = self.text_annotator.draw_text_horizon(False,0,1,[0,0],5,5)
+
+        text = self.text_annotator.draw_text_horizon(False, 0, 1, [0, 0], 5, 5)
         print(text)
         self.drawer.draw_text(text)
 
@@ -50,6 +55,75 @@ class NewWingMaker:
         self.drawer.draw_polyline(joint_bottom_tuple_list[0])
         self.drawer.draw_polyline(squid_tuple_list[0])
         self.drawer.save('airfoil1.dxf')
+
+        return airfoil
+
+    def make_nested_ribs(self, bin_width: float = 1000.0,
+                         simplify_tolerance: float = 0.5,
+                         output_filename: str = "nested_ribs.dxf",
+                         # ▼▼▼ safety_margin引数を追加 ▼▼▼
+                         safety_margin: float = 0.0,
+                         generate_video=False,
+                         video_filename="nesting_process.mp4"):
+        """
+        ネスティング機能付きリブ生成
+
+        Args:
+            bin_width: ネスティングビンの幅（mm）
+            simplify_tolerance: 翼型近似の許容誤差
+            output_filename: 出力DXFファイル名
+
+        Returns:
+            ネスティング結果の辞書
+        """
+        print("=== ネスティング機能付きリブ生成開始 ===")
+
+        # 翼型データの生成
+        chord_list, mix_list, \
+            spar_position_list, rear_spar_position_list, \
+            spar_diameter_list, rear_spar_diameter_list, ellipse_degree_list = self.wing_interpolator.interpolate()
+
+        airfoil_tuple_lists = self.calculator.generate_airfoil(chord_list, mix_list)
+
+        # ★ 桁の位置情報を取得
+        spar_position_tuple_list, rear_spar_position_tuple_list = self.calculator.get_spar_positions(
+            spar_position_list,
+            rear_spar_position_list,
+            spar_diameter_list,
+            rear_spar_diameter_list
+        )
+
+        print(f"生成された翼型数: {len(airfoil_tuple_lists)}")
+
+
+
+        # ネスティング実行
+        nesting_result = integrate_nesting_to_wingmaker(
+            airfoil_tuple_lists=airfoil_tuple_lists,
+            bin_width=bin_width,
+            simplify_tolerance=simplify_tolerance,
+            output_filename=output_filename,
+            safety_margin=safety_margin,
+            generate_video=generate_video,
+            video_filename=video_filename,
+            spar_positions=spar_position_tuple_list,
+            rear_spar_positions=rear_spar_position_tuple_list,
+            spar_diameters=spar_diameter_list,
+            rear_spar_diameters=rear_spar_diameter_list,
+            ellipse_degrees=ellipse_degree_list,
+            circle_or_ellipse=self.config.circle_or_ellipse
+        )
+
+        if nesting_result["success"]:
+            print("\n=== ネスティング完了 ===")
+            print(f"出力ファイル: {nesting_result['output_file']}")
+            print(f"材料サイズ: {nesting_result['bin_width']:.0f} × {nesting_result['bin_height']:.0f} mm")
+            print(f"材料利用率: {nesting_result['utilization']:.2%}")
+            print(f"配置部品数: {nesting_result['parts_count']}")
+        else:
+            print(f"エラー: {nesting_result['error']}")
+
+        return nesting_result
 
 
 if __name__ == '__main__':
@@ -84,7 +158,7 @@ if __name__ == '__main__':
         spar_cap_degree=70,
         squid_cap_thickness=1,
         squid_cap_length=20,
-        squid_cap_text_wide = 10,
+        squid_cap_text_wide=10,
         joint_thickness=4,
         squid_length=50,
         te_length=30,
@@ -107,7 +181,19 @@ if __name__ == '__main__':
         only_rib=[False, False, False, False, False, False, False, False, False],
         only_plank=[False, False, False, False, False, False, False, False, False],
         circle_or_ellipse='ellipse',  # 'circle' or 'ellipse'
-
     )
-    wing_maker = NewWingMaker(config)
-    wing_maker.make_rib()
+
+    wing_maker = NewWingMakerWithNesting(config)
+
+    # 通常のリブ生成
+    # wing_maker.make_rib()
+
+    # ネスティング機能付きリブ生成
+    result = wing_maker.make_nested_ribs(
+        bin_width=910.0,  # 材料幅1200mm
+        simplify_tolerance=2,  # 2mm以下の変化を無視
+        output_filename="optimized_wing_layout.dxf",
+        safety_margin=1.0,
+        generate_video=False,
+        video_filename="wing_rib_optimization.mp4"
+    )

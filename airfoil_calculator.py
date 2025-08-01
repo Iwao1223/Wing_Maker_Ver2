@@ -539,7 +539,7 @@ offset_fx_list_bottom[spar_section_bottom_x](spar_position_x)) < spar_diameter_l
             squid_tuple = Geometry.to_tuple_list(squid_x, squid_y)
             squid_tuple_list.append(squid_tuple)
             squid_tuple_list.append([])
-            geso_height =  self.offset_fx_list_top[i][-1](self.chord_list[i] - self.config.squid_length + geso_length) - self.offset_fx_list_bottom[i][-1](self.chord_list[i] - self.config.squid_length + geso_length)
+            geso_height = self.offset_fx_list_top[i][-1](self.chord_list[i] - self.config.squid_length + geso_length) - self.offset_fx_list_bottom[i][-1](self.chord_list[i] - self.config.squid_length + geso_length)
         return squid_tuple_list
 
     def get_rib_cap_length(self):
